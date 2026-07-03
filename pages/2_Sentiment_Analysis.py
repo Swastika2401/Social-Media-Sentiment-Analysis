@@ -1,5 +1,6 @@
 import streamlit as st
 import joblib
+import pandas as pd
 import re
 import os
 
@@ -58,11 +59,79 @@ def predict_sentiment(text):
     
     return sentiment_map.get(prediction, "Neutral") 
 
+
+TEXT_COLUMNS = (
+    "text",
+    "clean_text",
+    "tweet",
+    "full_text",
+    "tweetText",
+    "tweet_text",
+    "reply_text",
+    "replyText",
+    "content",
+    "body",
+)
+
+
+def find_text_column(dataframe):
+    normalized = {str(column).strip().lower(): column for column in dataframe.columns}
+    for column in TEXT_COLUMNS:
+        found = normalized.get(column.lower())
+        if found is not None:
+            return found
+    return None
+
+
+def classify_uploaded_tweets(dataframe):
+    text_column = find_text_column(dataframe)
+    if text_column is None:
+        raise ValueError(
+            "CSV must include text, clean_text, tweet, full_text, tweetText, "
+            "reply_text, replyText, content, or body."
+        )
+
+    results = dataframe.copy()
+    results["xquik_text"] = results[text_column].fillna("").astype(str).str.strip()
+    results = results[results["xquik_text"] != ""]
+    if results.empty:
+        raise ValueError("The selected text column is empty.")
+
+    results["clean_text"] = results["xquik_text"].apply(clean_tweet)
+    results["predicted_sentiment"] = results["xquik_text"].apply(predict_sentiment)
+    return results
+
 # --- 4. Streamlit UI Design ---
 
 st.set_page_config(page_title="Twitter Sentiment Classifier", layout="centered")
 
 st.title("🐦 Sentiment Analysis Tool")
+st.markdown("---")
+
+st.subheader("Batch Analyze Xquik/TweetClaw Export")
+uploaded_file = st.file_uploader(
+    "Upload a reviewed tweet CSV",
+    type=("csv",),
+    help="Accepts common text fields such as tweetText, reply_text, full_text, text, and clean_text.",
+)
+
+if uploaded_file is not None:
+    if model is None or tfidf_vectorizer is None:
+        st.error("Cannot perform batch analysis. Model assets failed to load.")
+    else:
+        try:
+            batch_results = classify_uploaded_tweets(pd.read_csv(uploaded_file))
+            st.success(f"Analyzed {len(batch_results)} rows.")
+            st.dataframe(batch_results[["xquik_text", "clean_text", "predicted_sentiment"]])
+            st.download_button(
+                "Download Predictions CSV",
+                data=batch_results.to_csv(index=False),
+                file_name="xquik_tweet_sentiment_predictions.csv",
+                mime="text/csv",
+            )
+        except (pd.errors.EmptyDataError, pd.errors.ParserError, ValueError) as exc:
+            st.error(str(exc))
+
 st.markdown("---")
 
 # Input box for the user
