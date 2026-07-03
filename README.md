@@ -94,6 +94,16 @@ streamlit run 1_Home.py
 3. The application will open in your browser (usually at http://localhost:8501)
 4. Use the *sidebar* to navigate to the *"Sentiment Analysis"* tool page
 
+### Batch Analyze Xquik/TweetClaw Exports
+
+The sentiment page can also batch analyze reviewed Xquik or TweetClaw CSV
+exports. Upload a CSV with one of these text columns: `text`, `clean_text`,
+`tweet`, `full_text`, `tweetText`, `reply_text`, `replyText`, `content`, or
+`body`.
+
+The app adds `clean_text` and `predicted_sentiment` columns, then lets you
+download the prediction CSV for further review.
+
 ---
 
 ## 💡 Methodology
@@ -197,4 +207,3 @@ This project is created for educational purposes as part of a college minor proj
 - Course instructors and mentors
 
 ---
-
